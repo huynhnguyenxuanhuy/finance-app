@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>FinanceApp</title>
+  <link rel="stylesheet" href="/css/main.css"/>
+</head>
+<body>
+
+<div id="auth-screen" class="auth-page">
+  <div class="auth-box">
+    <div class="auth-logo">Finance<span>.</span></div>
+    <p class="auth-sub">Quản lý tài chính thông minh</p>
+    <div id="login-form">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="login-email" class="form-control" placeholder="email@example.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mật khẩu</label>
+        <input type="password" id="login-pass" class="form-control" placeholder="••••••••"/>
+      </div>
+      <button class="btn btn-primary auth-btn" onclick="handleLogin()">Đăng nhập</button>
+      <p class="auth-toggle" style="margin-top:12px"><a onclick="openModal('modal-forgot')">Quên mật khẩu?</a></p>
+      <p class="auth-toggle">Chưa có tài khoản? <a onclick="showRegister()">Đăng ký ngay</a></p>
+    </div>
+    <div id="register-form" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Họ tên</label>
+        <input type="text" id="reg-name" class="form-control" placeholder="Nguyễn Văn A"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="reg-email" class="form-control" placeholder="email@example.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mật khẩu</label>
+        <input type="password" id="reg-pass" class="form-control" placeholder="Tối thiểu 6 ký tự"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Loại tài khoản</label>
+        <select id="reg-role" class="form-control">
+          <option value="personal">Cá nhân</option>
+          <option value="business">Doanh nghiệp</option>
+        </select>
+      </div>
+      <button class="btn btn-primary auth-btn" onclick="handleRegister()">Tạo tài khoản</button>
+      <p class="auth-toggle">Đã có tài khoản? <a onclick="showLogin()">Đăng nhập</a></p>
+    </div>
+  </div>
+</div>
+
+<div id="main-app" style="display:none">
+  <div id="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo"><h1>Finance<span>.</span></h1></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Tổng quan</div>
+        <button class="nav-item active" onclick="navigate('dashboard')">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Dashboard
+        </button>
+        <div class="nav-section">Tài chính</div>
+        <button class="nav-item" onclick="navigate('transactions')">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+          Giao dịch
+        </button>
+        <button class="nav-item" onclick="navigate('budgets')">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+          Ngân sách
+        </button>
+        <button class="nav-item" onclick="navigate('assets')">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          Tài sản
+        </button>
+        <div class="nav-section">Đầu tư</div>
+        <button class="nav-item" onclick="navigate('portfolio')">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+          Danh mục
+        </button>
+        <button class="nav-item" onclick="navigate('simulation')">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          Mô phỏng DCA
+        </button>
+      </nav>
+      <div class="sidebar-user" onclick="openProfile()">
+        <div class="user-avatar" id="user-avatar-sidebar">U</div>
+        <div class="user-info">
+          <div class="user-name" id="user-name-sidebar">Người dùng</div>
+          <div class="user-role" id="user-role-sidebar">Cá nhân</div>
+        </div>
+        <button class="logout-btn" onclick="event.stopPropagation();handleLogout()" title="Đăng xuất">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="topbar">
+        <div class="topbar-title" id="page-title">Dashboard</div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost btn-sm theme-toggle" onclick="toggleTheme()" id="theme-toggle" title="Đổi giao diện sáng/tối">Light mode</button>
+          <span id="topbar-date" style="font-size:.8rem;color:var(--muted)"></span>
+        </div>
+      </div>
+
+      <div class="page-body">
+
+        <!-- DASHBOARD -->
+        <div class="page active" id="page-dashboard">
+          <div class="stats-grid">
+            <div class="stat-card green"><div class="stat-icon">💰</div><div class="stat-label">Tổng thu tháng này</div><div class="stat-value green" id="dash-income">0 ₫</div><div class="stat-sub">Thu nhập</div></div>
+            <div class="stat-card red"><div class="stat-icon">💸</div><div class="stat-label">Tổng chi tháng này</div><div class="stat-value red" id="dash-expense">0 ₫</div><div class="stat-sub">Chi tiêu</div></div>
+            <div class="stat-card blue"><div class="stat-icon">📊</div><div class="stat-label">Số dư tháng này</div><div class="stat-value" id="dash-balance">0 ₫</div><div class="stat-sub">Thu - Chi</div></div>
+            <div class="stat-card purple"><div class="stat-icon">📈</div><div class="stat-label">Danh mục đầu tư</div><div class="stat-value" id="dash-portfolio">0</div><div class="stat-sub">Portfolio đang có</div></div>
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="section-header">
+                <div><div class="section-title">Giao dịch gần đây</div><div class="section-sub">10 giao dịch mới nhất</div></div>
+                <button class="btn btn-ghost btn-sm" onclick="navigate('transactions')">Xem tất cả</button>
+              </div>
+              <div id="dash-recent-tx"><div class="loading"><div class="spinner"></div>Đang tải...</div></div>
+            </div>
+            <div class="card">
+              <div class="section-header">
+                <div><div class="section-title">Chi tiêu theo danh mục</div><div class="section-sub">Tháng hiện tại</div></div>
+              </div>
+              <div id="dash-categories"><div class="loading"><div class="spinner"></div>Đang tải...</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TRANSACTIONS -->
+        <div class="page" id="page-transactions">
+          <div class="section-header mb-20">
+            <div><div class="section-title">Giao dịch</div><div class="section-sub">Quản lý thu chi hàng ngày</div></div>
+            <button class="btn btn-primary" onclick="openModal('modal-add-tx')">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              Thêm giao dịch
+            </button>
+          </div>
+          <div class="card mb-20" style="padding:16px 20px">
+            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+              <select id="tx-filter-type" class="form-control" style="width:140px" onchange="loadTransactions()">
+                <option value="">Tất cả</option><option value="income">Thu nhập</option><option value="expense">Chi tiêu</option>
+              </select>
+              <input type="month" id="tx-filter-month" class="form-control" style="width:160px" onchange="loadTransactions()"/>
+              <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Xóa bộ lọc</button>
+              <button class="btn btn-ghost btn-sm" onclick="exportTransactionsCSV()">Xuất Excel/CSV</button>
+              <button class="btn btn-ghost btn-sm" onclick="exportReportPDF()">Xuất PDF</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Ghi chú</th><th>Danh mục</th><th>Ngày</th><th>Loại</th><th style="text-align:right">Số tiền</th><th></th></tr></thead>
+                <tbody id="tx-tbody"><tr><td colspan="6"><div class="loading"><div class="spinner"></div>Đang tải...</div></td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- BUDGETS -->
+        <div class="page" id="page-budgets">
+          <div class="section-header mb-20">
+            <div><div class="section-title">Ngân sách</div><div class="section-sub">Kiểm soát chi tiêu theo danh mục</div></div>
+            <button class="btn btn-primary" onclick="openModal('modal-add-budget')">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              Thêm ngân sách
+            </button>
+          </div>
+          <div id="budgets-grid" class="grid-2"><div class="loading"><div class="spinner"></div>Đang tải...</div></div>
+        </div>
+
+        <!-- ASSETS -->
+        <div class="page" id="page-assets">
+          <div class="section-header mb-20">
+            <div><div class="section-title">Tài sản</div><div class="section-sub">Danh mục tài sản cá nhân</div></div>
+            <button class="btn btn-primary" onclick="openModal('modal-add-asset')">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              Thêm tài sản
+            </button>
+          </div>
+          <div class="stats-grid" id="asset-summary" style="margin-bottom:20px"></div>
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Tên tài sản</th><th>Loại</th><th>Ngày có</th><th style="text-align:right">Giá trị</th><th></th></tr></thead>
+                <tbody id="assets-tbody"><tr><td colspan="5"><div class="loading"><div class="spinner"></div>Đang tải...</div></td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- PORTFOLIO -->
+        <div class="page" id="page-portfolio">
+          <div class="section-header mb-20">
+            <div><div class="section-title">Danh mục cổ phiếu</div><div class="section-sub">Quản lý portfolio đầu tư</div></div>
+            <button class="btn btn-primary" onclick="openModal('modal-add-portfolio')">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              Tạo portfolio
+            </button>
+          </div>
+          <div id="portfolio-grid" class="grid-3"><div class="loading"><div class="spinner"></div>Đang tải...</div></div>
+        </div>
+
+        <!-- SIMULATION -->
+        <div class="page" id="page-simulation">
+          <div class="section-header mb-20">
+            <div><div class="section-title">Mô phỏng đầu tư DCA</div><div class="section-sub">Tính toán lợi nhuận đầu tư dài hạn</div></div>
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="section-title" style="margin-bottom:16px">Thông số mô phỏng</div>
+              <div class="tabs">
+                <button class="tab active" onclick="switchSimTab('dca',this)">DCA hàng tháng</button>
+                <button class="tab" onclick="switchSimTab('lump_sum',this)">Đầu tư một lần</button>
+              </div>
+              <input type="hidden" id="sim-strategy" value="dca"/>
+              <div class="form-group">
+                <label class="form-label">Mã cổ phiếu / Quỹ</label>
+                <input type="text" id="sim-symbol" class="form-control" placeholder="VNM, FPT, VIC..." value="VNM" onblur="lookupStock()"/>
+                <button class="btn btn-ghost btn-sm" onclick="lookupStock()" style="margin-top:8px">Tìm mã & xem P/E, EPS</button>
+              </div>
+              <div id="stock-info" class="mb-16"></div>
+              <div id="sim-dca-fields">
+                <div class="form-group">
+                  <label class="form-label">Số tiền đầu tư hàng tháng (₫)</label>
+                  <input type="number" id="sim-monthly" class="form-control" placeholder="5000000" value="5000000"/>
+                </div>
+              </div>
+              <div id="sim-lump-fields" style="display:none">
+                <div class="form-group">
+                  <label class="form-label">Số tiền đầu tư ban đầu (₫)</label>
+                  <input type="number" id="sim-initial" class="form-control" placeholder="50000000" value="50000000"/>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Từ tháng</label><input type="month" id="sim-start" class="form-control" value="2020-01"/></div>
+                <div class="form-group"><label class="form-label">Đến tháng</label><input type="month" id="sim-end" class="form-control"/></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Lợi nhuận kỳ vọng / năm (%)</label>
+                <input type="number" id="sim-return" class="form-control" value="12" min="1" max="50"/>
+              </div>
+              <button class="btn btn-primary w-full" onclick="runSimulation()" style="margin-top:4px">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Chạy mô phỏng
+              </button>
+              <div id="sim-result" style="display:none" class="sim-result">
+                <div style="font-size:.9rem;font-weight:600;margin-bottom:16px">Kết quả mô phỏng</div>
+                <div class="sim-grid">
+                  <div class="sim-item"><div class="sim-label">Tổng đã đầu tư</div><div class="sim-val" id="res-invested">—</div></div>
+                  <div class="sim-item"><div class="sim-label">Giá trị hiện tại</div><div class="sim-val" style="color:var(--green)" id="res-value">—</div></div>
+                  <div class="sim-item"><div class="sim-label">Lợi nhuận</div><div class="sim-val" style="color:var(--accent)" id="res-profit">—</div></div>
+                </div>
+                <div id="sim-chart" class="sim-chart"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="section-header mb-20">
+                <div class="section-title">Lịch sử mô phỏng</div>
+                <button class="btn btn-ghost btn-sm" onclick="loadSimulations()">Làm mới</button>
+              </div>
+              <div id="sim-history"><div class="loading"><div class="spinner"></div>Đang tải...</div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-add-tx">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Thêm giao dịch</div><button class="modal-close" onclick="closeModal('modal-add-tx')">×</button></div>
+    <div class="tabs"><button class="tab active" onclick="setTxType('income',this)">Thu nhập</button><button class="tab" onclick="setTxType('expense',this)">Chi tiêu</button></div>
+    <input type="hidden" id="tx-type-input" value="income"/>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Số tiền (₫)</label><input type="number" id="tx-amount" class="form-control" placeholder="0"/></div>
+      <div class="form-group"><label class="form-label">Ngày</label><input type="date" id="tx-date" class="form-control"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Danh mục</label><select id="tx-category" class="form-control"></select></div>
+    <div class="form-group"><label class="form-label">Ghi chú</label><input type="text" id="tx-note" class="form-control" placeholder="Mô tả giao dịch..."/></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-add-tx')">Hủy</button><button class="btn btn-primary" onclick="submitTransaction()">Lưu giao dịch</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-add-budget">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Thêm ngân sách</div><button class="modal-close" onclick="closeModal('modal-add-budget')">×</button></div>
+    <div class="form-group"><label class="form-label">Danh mục chi tiêu</label>
+      <select id="budget-category" class="form-control"><option>Ăn uống</option><option>Đi lại</option><option>Nhà ở</option><option>Giải trí</option><option>Y tế</option><option>Giáo dục</option><option>Khác</option></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Giới hạn (₫)</label><input type="number" id="budget-limit" class="form-control" placeholder="5000000"/></div>
+      <div class="form-group"><label class="form-label">Tháng/Năm</label><input type="month" id="budget-month" class="form-control"/></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-add-budget')">Hủy</button><button class="btn btn-primary" onclick="submitBudget()">Lưu</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-add-asset">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Thêm tài sản</div><button class="modal-close" onclick="closeModal('modal-add-asset')">×</button></div>
+    <div class="form-group"><label class="form-label">Tên tài sản</label><input type="text" id="asset-name" class="form-control" placeholder="VD: Tiền gửi ngân hàng ABC"/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Loại tài sản</label>
+        <select id="asset-type" class="form-control"><option value="cash">Tiền mặt</option><option value="savings">Tiết kiệm</option><option value="stock">Cổ phiếu</option><option value="real_estate">Bất động sản</option><option value="vehicle">Phương tiện</option><option value="other">Khác</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Giá trị (₫)</label><input type="number" id="asset-value" class="form-control" placeholder="0"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Ngày mua/có</label><input type="date" id="asset-date" class="form-control"/></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-add-asset')">Hủy</button><button class="btn btn-primary" onclick="submitAsset()">Lưu</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-add-portfolio">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Tạo portfolio</div><button class="modal-close" onclick="closeModal('modal-add-portfolio')">×</button></div>
+    <div class="form-group"><label class="form-label">Tên portfolio</label><input type="text" id="port-name" class="form-control" placeholder="VD: Danh mục dài hạn 2025"/></div>
+    <div class="form-group"><label class="form-label">Mô tả</label><input type="text" id="port-desc" class="form-control" placeholder="Mục tiêu của portfolio này..."/></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-add-portfolio')">Hủy</button><button class="btn btn-primary" onclick="submitPortfolio()">Tạo</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-add-stock">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Thêm cổ phiếu</div><button class="modal-close" onclick="closeModal('modal-add-stock')">×</button></div>
+    <input type="hidden" id="stock-portfolio-id"/>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Mã cổ phiếu</label><input type="text" id="stock-symbol" class="form-control" placeholder="FPT"/></div>
+      <div class="form-group"><label class="form-label">Số lượng</label><input type="number" id="stock-shares" class="form-control" placeholder="100"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Giá mua (₫)</label><input type="number" id="stock-price" class="form-control" placeholder="100000"/></div>
+      <div class="form-group"><label class="form-label">Ngày mua</label><input type="date" id="stock-date" class="form-control"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Chiến lược</label><select id="stock-strategy" class="form-control"><option value="lump_sum">Một lần</option><option value="dca">DCA</option><option value="other">Khác</option></select></div>
+      <div class="form-group"><label class="form-label">Ghi chú</label><input type="text" id="stock-note" class="form-control" placeholder="Lý do mua..."/></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-add-stock')">Hủy</button><button class="btn btn-primary" onclick="submitStock()">Lưu cổ phiếu</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-profile">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Hồ sơ cá nhân</div><button class="modal-close" onclick="closeModal('modal-profile')">×</button></div>
+    <div class="form-group"><label class="form-label">Họ tên</label><input type="text" id="profile-name" class="form-control"/></div>
+    <div class="form-group"><label class="form-label">Email</label><input type="email" id="profile-email" class="form-control"/></div>
+    <div class="form-group"><label class="form-label">Avatar</label><input type="file" id="profile-avatar" class="form-control" accept="image/*"/></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-profile')">Hủy</button><button class="btn btn-primary" onclick="updateProfile()">Cập nhật</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-forgot">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Quên mật khẩu</div><button class="modal-close" onclick="closeModal('modal-forgot')">×</button></div>
+    <div class="form-group"><label class="form-label">Email tài khoản</label><input type="email" id="forgot-email" class="form-control" placeholder="email@example.com"/></div>
+    <button class="btn btn-ghost w-full mb-16" onclick="requestPasswordReset()">Tạo mã đặt lại mật khẩu</button>
+    <div class="form-group"><label class="form-label">Mã đặt lại</label><input type="text" id="reset-token" class="form-control" placeholder="Mã demo sẽ hiện ở đây"/></div>
+    <div class="form-group"><label class="form-label">Mật khẩu mới</label><input type="password" id="reset-pass" class="form-control" placeholder="Tối thiểu 6 ký tự"/></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-forgot')">Hủy</button><button class="btn btn-primary" onclick="resetPassword()">Đổi mật khẩu</button></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+<script src="/js/app.js"></script>
+</body>
+</html>
