@@ -130,6 +130,18 @@
               <div id="dash-categories"><div class="loading"><div class="spinner"></div>Đang tải...</div></div>
             </div>
           </div>
+          <div class="card yearly-card">
+            <div class="section-header">
+              <div><div class="section-title">Biểu đồ tài chính theo quý</div><div class="section-sub">Doanh thu, chi phí và lợi nhuận trong năm</div></div>
+              <div class="chart-actions">
+                <label class="chart-toggle"><input type="checkbox" id="chart-mode-revenue" checked onchange="renderYearlyIncomeExpenseChart()"/>Doanh thu</label>
+                <label class="chart-toggle"><input type="checkbox" id="chart-mode-expense" checked onchange="renderYearlyIncomeExpenseChart()"/>Chi phí</label>
+                <label class="chart-toggle"><input type="checkbox" id="chart-mode-profit" checked onchange="renderYearlyIncomeExpenseChart()"/>Lợi nhuận</label>
+                <button class="btn btn-ghost btn-sm" onclick="exportYearlyChartCSV()">Xuất biểu đồ</button>
+              </div>
+            </div>
+            <div id="dash-yearly-chart"><div class="loading"><div class="spinner"></div>Đang tải...</div></div>
+          </div>
         </div>
 
         <!-- TRANSACTIONS -->

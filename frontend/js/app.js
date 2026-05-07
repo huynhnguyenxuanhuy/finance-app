@@ -4,6 +4,8 @@ let token = localStorage.getItem('token') || '';
 let currentUser = JSON.parse(localStorage.getItem('user') || 'null');
 let currentPage = 'dashboard';
 let currentTheme = localStorage.getItem('theme') || 'dark';
+let yearlyChartData = [];
+let yearlyChartYear = new Date().getFullYear();
 
 // ─── HELPERS ───
 const $ = id => document.getElementById(id);
@@ -181,6 +183,7 @@ async function loadDashboard() {
 
   loadRecentTx();
   loadCategoryChart();
+  loadYearlyIncomeExpenseChart(year);
 }
 
 async function loadRecentTx() {
@@ -229,6 +232,95 @@ async function loadCategoryChart() {
       </div>
     `).join('');
   } catch (e) {}
+}
+
+async function loadYearlyIncomeExpenseChart(year = new Date().getFullYear()) {
+  try {
+    const report = await api(`/transactions/quarterly?year=${year}`);
+    yearlyChartYear = report.year;
+    yearlyChartData = report.data;
+
+    renderYearlyIncomeExpenseChart();
+  } catch (e) {
+    $('dash-yearly-chart').innerHTML = '<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Không tải được biểu đồ tài chính theo quý</div></div>';
+  }
+}
+
+function renderYearlyIncomeExpenseChart() {
+  if (!$('dash-yearly-chart')) return;
+
+  const modes = [
+    { key: 'revenue', label: 'Doanh thu', className: 'revenue', checked: $('chart-mode-revenue')?.checked },
+    { key: 'expense', label: 'Chi phí', className: 'expense', checked: $('chart-mode-expense')?.checked },
+    { key: 'profit', label: 'Lợi nhuận', className: 'profit', checked: $('chart-mode-profit')?.checked },
+  ].filter(mode => mode.checked);
+
+  const totalRevenue = yearlyChartData.reduce((sum, item) => sum + item.revenue, 0);
+  const totalExpense = yearlyChartData.reduce((sum, item) => sum + item.expense, 0);
+  const totalProfit = totalRevenue - totalExpense;
+
+  if (!totalRevenue && !totalExpense) {
+    $('dash-yearly-chart').innerHTML = '<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Chưa có dữ liệu tài chính trong năm nay</div></div>';
+    return;
+  }
+
+  if (!modes.length) {
+    $('dash-yearly-chart').innerHTML = '<div class="empty"><div class="empty-icon">☑️</div><div class="empty-text">Chọn ít nhất một chế độ biểu đồ</div></div>';
+    return;
+  }
+
+  const maxValue = Math.max(
+    ...yearlyChartData.flatMap(item => modes.map(mode => Math.abs(item[mode.key] || 0))),
+    1
+  );
+
+  $('dash-yearly-chart').innerHTML = `
+    <div class="yearly-summary">
+      <div><span>Tổng doanh thu ${yearlyChartYear}</span><strong class="green">${fmt(totalRevenue)}</strong></div>
+      <div><span>Tổng chi phí ${yearlyChartYear}</span><strong class="red">${fmt(totalExpense)}</strong></div>
+      <div><span>Tổng lợi nhuận</span><strong class="${totalProfit >= 0 ? 'green' : 'red'}">${totalProfit < 0 ? '-' : ''}${fmt(Math.abs(totalProfit))}</strong></div>
+    </div>
+    <div class="chart-legend">
+      ${modes.map(mode => `<span><i class="legend-dot ${mode.className}-dot"></i>${mode.label}</span>`).join('')}
+    </div>
+    <div class="yearly-chart">
+      ${yearlyChartData.map(item => `
+        <div class="yearly-month">
+          <div class="yearly-bars">
+            ${modes.map(mode => {
+              const value = item[mode.key] || 0;
+              const height = Math.max(value ? 6 : 0, Math.abs(value) / maxValue * 100);
+              const valueText = value < 0 ? '-' + fmt(Math.abs(value)) : fmt(value);
+              return `<div class="yearly-bar ${mode.className} ${value < 0 ? 'negative' : ''}" style="height:${height}%" title="${mode.label} ${item.label}: ${valueText}"></div>`;
+            }).join('')}
+          </div>
+          <div class="yearly-label">${item.label}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+async function exportYearlyChartCSV() {
+  if (!yearlyChartData.length) return toast('Chưa có dữ liệu biểu đồ để xuất', 'error');
+
+  try {
+    const res = await fetch(`/api/transactions/quarterly/export?year=${yearlyChartYear}`, {
+      headers: token ? { Authorization: 'Bearer ' + token } : {},
+    });
+    if (!res.ok) throw new Error('Không xuất được biểu đồ');
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bieu-do-tai-chinh-theo-quy-${yearlyChartYear}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Đã xuất biểu đồ gồm doanh thu, chi phí và lợi nhuận');
+  } catch (e) {
+    toast(e.message, 'error');
+  }
 }
 
 // ─── TRANSACTIONS ───

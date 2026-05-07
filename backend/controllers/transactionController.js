@@ -1,5 +1,42 @@
 const Transaction = require('../models/Transaction');
 
+const buildQuarterlyFinancialReport = async (userId, year) => {
+  const reportYear = Number(year) || new Date().getFullYear();
+  const start = new Date(reportYear, 0, 1);
+  const end = new Date(reportYear, 11, 31, 23, 59, 59);
+
+  const rows = await Transaction.aggregate([
+    { $match: { userId, date: { $gte: start, $lte: end } } },
+    {
+      $group: {
+        _id: {
+          quarter: { $ceil: { $divide: [{ $month: '$date' }, 3] } },
+          type: '$type',
+        },
+        total: { $sum: '$amount' },
+      },
+    },
+  ]);
+
+  return Array.from({ length: 4 }, (_, index) => {
+    const quarter = index + 1;
+    const revenue = rows
+      .filter(item => item._id.quarter === quarter && item._id.type === 'income')
+      .reduce((sum, item) => sum + item.total, 0);
+    const expense = rows
+      .filter(item => item._id.quarter === quarter && item._id.type === 'expense')
+      .reduce((sum, item) => sum + item.total, 0);
+
+    return {
+      quarter,
+      label: `Quý ${quarter}`,
+      revenue,
+      expense,
+      profit: revenue - expense,
+    };
+  });
+};
+
 // GET /api/transactions
 const getTransactions = async (req, res) => {
   try {
@@ -103,4 +140,42 @@ const getByCategory = async (req, res) => {
   }
 };
 
-module.exports = { getTransactions, createTransaction, updateTransaction, deleteTransaction, getSummary, getByCategory };
+// GET /api/transactions/quarterly
+const getQuarterlyFinancialReport = async (req, res) => {
+  try {
+    const year = Number(req.query.year) || new Date().getFullYear();
+    const data = await buildQuarterlyFinancialReport(req.user._id, year);
+    res.json({ success: true, year, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// GET /api/transactions/quarterly/export
+const exportQuarterlyFinancialReport = async (req, res) => {
+  try {
+    const year = Number(req.query.year) || new Date().getFullYear();
+    const data = await buildQuarterlyFinancialReport(req.user._id, year);
+    const header = ['Mốc thời gian', 'Doanh thu', 'Chi phí', 'Lợi nhuận'];
+    const csv = [header, ...data.map(item => [item.label, item.revenue, item.expense, item.profit])]
+      .map(row => row.map(cell => `"${String(cell).replaceAll('"', '""')}"`).join(','))
+      .join('\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="bieu-do-tai-chinh-theo-quy-${year}.csv"`);
+    res.send('\ufeff' + csv);
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+module.exports = {
+  getTransactions,
+  createTransaction,
+  updateTransaction,
+  deleteTransaction,
+  getSummary,
+  getByCategory,
+  getQuarterlyFinancialReport,
+  exportQuarterlyFinancialReport,
+};

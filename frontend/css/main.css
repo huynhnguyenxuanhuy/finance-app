@@ -170,6 +170,31 @@ td:first-child{color:var(--text)}tr:last-child td{border-bottom:none}tr:hover td
 .mini-chart{height:72px;display:flex;align-items:flex-end;gap:5px;margin-top:10px;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius)}
 .mini-bar{flex:1;background:linear-gradient(to top,var(--accent),rgba(79,156,249,.35));border-radius:3px 3px 0 0;min-height:8px}
 
+.yearly-card{margin-top:20px}
+.chart-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.chart-legend{display:flex;gap:14px;align-items:center;font-size:.78rem;color:var(--muted2)}
+.chart-legend span{display:inline-flex;align-items:center;gap:6px}
+.chart-toggle{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:var(--muted2);cursor:pointer;user-select:none}
+.chart-toggle input{accent-color:var(--accent)}
+.legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.income-dot,.revenue-dot{background:var(--green)}
+.expense-dot{background:var(--red)}
+.profit-dot{background:var(--accent)}
+.yearly-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.yearly-summary div{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px}
+.yearly-summary span{display:block;font-size:.72rem;color:var(--muted2);margin-bottom:5px}
+.yearly-summary strong{font-family:'DM Mono',monospace;font-size:.95rem;font-weight:600}
+.yearly-chart{height:260px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:end;padding:18px 8px 0;margin-top:12px;border-top:1px solid var(--border)}
+.yearly-month{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;min-width:0}
+.yearly-bars{height:210px;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:5px}
+.yearly-bar{width:min(28px,28%);border-radius:5px 5px 0 0;min-height:0;transition:height .2s ease,filter .15s ease}
+.yearly-bar:hover{filter:brightness(1.08)}
+.yearly-bar.income,.yearly-bar.revenue{background:linear-gradient(to top,var(--green),rgba(16,185,129,.45))}
+.yearly-bar.expense{background:linear-gradient(to top,var(--red),rgba(244,63,94,.45))}
+.yearly-bar.profit{background:linear-gradient(to top,var(--accent),rgba(79,156,249,.45))}
+.yearly-bar.profit.negative{background:linear-gradient(to top,var(--red),rgba(244,63,94,.35))}
+.yearly-label{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted)}
+
 .tabs{display:flex;gap:4px;background:var(--bg3);border-radius:10px;padding:4px;margin-bottom:20px}
 .tab{flex:1;padding:8px 14px;border-radius:7px;font-size:.85rem;font-weight:500;border:none;background:none;color:var(--muted2);cursor:pointer;transition:all .15s;font-family:inherit}
 .tab.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.2)}
@@ -184,6 +209,9 @@ td:first-child{color:var(--text)}tr:last-child td{border-bottom:none}tr:hover td
   .grid-2,.form-row{grid-template-columns:1fr}
   .stats-grid{grid-template-columns:1fr 1fr}
   .sim-grid{grid-template-columns:1fr}
+  .yearly-summary{grid-template-columns:1fr}
+  .yearly-chart{gap:6px;overflow-x:auto;padding-bottom:4px}
+  .yearly-month{min-width:38px}
 }
 
 @media print{
