@@ -8,7 +8,7 @@ const connectDB = require('./config/db');
 const app = express();
 
 // Kết nối MongoDB Atlas
-connectDB();
+const dbReady = connectDB();
 
 // Tạo thư mục uploads nếu chưa có
 const uploadsDir = path.join(__dirname, '../uploads');
@@ -23,6 +23,27 @@ app.use('/uploads', express.static(uploadsDir));
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, '../frontend')));
 
+app.use('/api', async (req, res, next) => {
+  if (req.path === '/health') return next();
+
+  if (!process.env.MONGODB_URI || !process.env.JWT_SECRET) {
+    return res.status(503).json({
+      success: false,
+      message: 'API chưa cấu hình MONGODB_URI/JWT_SECRET trên server production',
+    });
+  }
+
+  const connected = await dbReady;
+  if (!connected) {
+    return res.status(503).json({
+      success: false,
+      message: 'API chưa kết nối được MongoDB Atlas',
+    });
+  }
+
+  next();
+});
+
 // API Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/transactions', require('./routes/transactions'));
@@ -34,7 +55,13 @@ app.use('/api/stocks', require('./routes/stocks'));
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'Server đang chạy', time: new Date() });
+  res.json({
+    success: true,
+    message: 'Server đang chạy',
+    databaseConfigured: Boolean(process.env.MONGODB_URI),
+    jwtConfigured: Boolean(process.env.JWT_SECRET),
+    time: new Date(),
+  });
 });
 
 // Fallback về index.html cho SPA
