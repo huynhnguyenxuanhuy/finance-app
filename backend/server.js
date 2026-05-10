@@ -48,8 +48,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Lỗi server' });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server chạy tại http://localhost:${PORT}`);
-  console.log(`📊 Môi trường: ${process.env.NODE_ENV || 'development'}`);
-});
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server chạy tại http://localhost:${PORT}`);
+    console.log(`📊 Môi trường: ${process.env.NODE_ENV || 'development'}`);
+  });
+}
+
+module.exports = app;
