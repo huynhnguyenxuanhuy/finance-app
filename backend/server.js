@@ -11,7 +11,7 @@ const app = express();
 const dbReady = connectDB();
 
 // Tạo thư mục uploads nếu chưa có
-const uploadsDir = path.join(__dirname, '../uploads');
+const uploadsDir = process.env.VERCEL ? '/tmp/uploads' : path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 // Middleware
