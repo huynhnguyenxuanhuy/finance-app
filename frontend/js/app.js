@@ -6,7 +6,6 @@ let currentPage = 'dashboard';
 let currentTheme = localStorage.getItem('theme') || 'dark';
 let yearlyChartData = [];
 let yearlyChartYear = new Date().getFullYear();
-let localDemoMode = false;
 
 // ─── HELPERS ───
 const $ = id => document.getElementById(id);
@@ -15,47 +14,23 @@ const fmtNum = n => new Intl.NumberFormat('vi-VN').format(Math.round(n));
 const fmtDate = d => new Date(d).toLocaleDateString('vi-VN');
 
 async function api(path, opts = {}) {
-  if (localDemoMode) return localApi(path, opts);
-
-  let res;
-  try {
-    res = await fetch(API + '/api' + path, {
-      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
-      ...opts,
-      body: opts.body ? JSON.stringify(opts.body) : undefined,
-    });
-  } catch (_) {
-    localDemoMode = true;
-    return localApi(path, opts);
-  }
+  const res = await fetch(API + '/api' + path, {
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
   const data = await parseApiResponse(res);
-  if (res.status === 503) {
-    localDemoMode = true;
-    return localApi(path, opts);
-  }
   if (!res.ok) throw new Error(data.message || 'Lỗi server');
   return data;
 }
 
 async function apiForm(path, formData, method = 'PUT') {
-  if (localDemoMode) return localApiForm(path, formData);
-
-  let res;
-  try {
-    res = await fetch(API + '/api' + path, {
-      method,
-      headers: token ? { Authorization: 'Bearer ' + token } : {},
-      body: formData,
-    });
-  } catch (_) {
-    localDemoMode = true;
-    return localApiForm(path, formData);
-  }
+  const res = await fetch(API + '/api' + path, {
+    method,
+    headers: token ? { Authorization: 'Bearer ' + token } : {},
+    body: formData,
+  });
   const data = await parseApiResponse(res);
-  if (res.status === 503) {
-    localDemoMode = true;
-    return localApiForm(path, formData);
-  }
   if (!res.ok) throw new Error(data.message || 'Lỗi server');
   return data;
 }
@@ -74,341 +49,6 @@ async function parseApiResponse(res) {
         : 'API server đang lỗi hoặc chưa cấu hình biến môi trường production',
     };
   }
-}
-
-async function detectApiMode() {
-  try {
-    const res = await fetch('/api/health', { cache: 'no-store' });
-    const data = await parseApiResponse(res);
-    localDemoMode = !data.databaseConfigured;
-  } catch (_) {
-    localDemoMode = true;
-  }
-
-  if (localDemoMode && currentUser) {
-    const db = demoStore();
-    if (!db.users.some(user => user.id === currentUser.id)) {
-      token = '';
-      currentUser = null;
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-    }
-  }
-}
-
-const STOCKS = [
-  { symbol: 'FPT', name: 'FPT Corporation', pe: 23.4, eps: 5120, sector: 'Công nghệ', price: 118500 },
-  { symbol: 'VNM', name: 'Vinamilk', pe: 16.8, eps: 4210, sector: 'Hàng tiêu dùng', price: 70600 },
-  { symbol: 'VCB', name: 'Vietcombank', pe: 14.2, eps: 6380, sector: 'Ngân hàng', price: 90600 },
-  { symbol: 'HPG', name: 'Hoa Phat Group', pe: 18.9, eps: 1560, sector: 'Thép', price: 29500 },
-  { symbol: 'MWG', name: 'Mobile World Group', pe: 21.1, eps: 2840, sector: 'Bán lẻ', price: 59900 },
-  { symbol: 'VIC', name: 'Vingroup', pe: 31.5, eps: 1380, sector: 'Bất động sản', price: 43500 },
-  { symbol: 'SSI', name: 'SSI Securities', pe: 19.6, eps: 1720, sector: 'Chứng khoán', price: 33700 },
-  { symbol: 'GAS', name: 'PV Gas', pe: 17.5, eps: 4620, sector: 'Năng lượng', price: 80800 },
-];
-
-function demoStore() {
-  const initial = { users: [], transactions: [], budgets: [], assets: [], portfolios: [], simulations: [], resetTokens: {} };
-  return JSON.parse(localStorage.getItem('finance-demo-db') || JSON.stringify(initial));
-}
-
-function saveDemoStore(db) {
-  localStorage.setItem('finance-demo-db', JSON.stringify(db));
-}
-
-function demoId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-}
-
-function requireDemoUser(db) {
-  const user = db.users.find(item => item.id === currentUser?.id);
-  if (!user) throw new Error('Vui lòng đăng nhập lại');
-  return user;
-}
-
-function parseDemoPath(path) {
-  const url = new URL(path, window.location.origin);
-  return { pathname: url.pathname, params: url.searchParams };
-}
-
-function inDateRange(itemDate, startDate, endDate) {
-  const date = new Date(itemDate);
-  if (startDate && date < new Date(startDate)) return false;
-  if (endDate && date > new Date(endDate)) return false;
-  return true;
-}
-
-function monthWindow(month, year) {
-  const m = Number(month) || new Date().getMonth() + 1;
-  const y = Number(year) || new Date().getFullYear();
-  return {
-    month: m,
-    year: y,
-    start: new Date(y, m - 1, 1),
-    end: new Date(y, m, 0, 23, 59, 59),
-  };
-}
-
-function demoSimulation(body) {
-  const annualReturn = Number(body.annualReturn || 0.12);
-  const monthlyReturn = annualReturn / 12;
-  const start = new Date(body.startDate);
-  const end = new Date(body.endDate);
-  const chartData = [];
-  let totalInvested = 0;
-  let currentValue = 0;
-  const cur = new Date(start);
-
-  while (cur <= end) {
-    if (body.strategy === 'dca') {
-      totalInvested += Number(body.monthlyAmount || 0);
-      currentValue = (currentValue + Number(body.monthlyAmount || 0)) * (1 + monthlyReturn);
-    } else if (!chartData.length) {
-      totalInvested = Number(body.initialAmount || 0);
-      currentValue = totalInvested;
-    } else {
-      currentValue *= (1 + monthlyReturn);
-    }
-    chartData.push({ date: new Date(cur).toISOString(), value: Math.round(currentValue), invested: Math.round(totalInvested) });
-    cur.setMonth(cur.getMonth() + 1);
-  }
-
-  const profitPercent = totalInvested ? Math.round(((currentValue - totalInvested) / totalInvested) * 10000) / 100 : 0;
-  return { chartData, totalInvested: Math.round(totalInvested), resultValue: Math.round(currentValue), profitPercent };
-}
-
-async function localApi(path, opts = {}) {
-  const db = demoStore();
-  const method = (opts.method || 'GET').toUpperCase();
-  const body = opts.body || {};
-  const { pathname, params } = parseDemoPath(path);
-  const now = new Date().toISOString();
-
-  if (pathname === '/auth/register' && method === 'POST') {
-    if (db.users.some(user => user.email === body.email)) throw new Error('Email đã được sử dụng');
-    const user = { id: demoId(), name: body.name, email: body.email, password: body.password, role: body.role || 'personal', avatar: '', createdAt: now };
-    db.users.push(user);
-    saveDemoStore(db);
-    return { success: true, token: 'demo-' + user.id, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar } };
-  }
-
-  if (pathname === '/auth/login' && method === 'POST') {
-    const user = db.users.find(item => item.email === body.email && item.password === body.password);
-    if (!user) throw new Error('Email hoặc mật khẩu không đúng');
-    return { success: true, token: 'demo-' + user.id, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar } };
-  }
-
-  if (pathname === '/auth/me') {
-    const user = requireDemoUser(db);
-    return { success: true, user };
-  }
-
-  if (pathname === '/auth/forgot-password' && method === 'POST') {
-    const user = db.users.find(item => item.email === body.email);
-    if (!user) throw new Error('Không tìm thấy email');
-    const resetToken = demoId();
-    db.resetTokens[resetToken] = user.id;
-    saveDemoStore(db);
-    return { success: true, message: 'Đã tạo mã đặt lại mật khẩu demo', resetToken };
-  }
-
-  if (pathname.startsWith('/auth/reset-password/') && method === 'POST') {
-    const resetToken = pathname.split('/').pop();
-    const user = db.users.find(item => item.id === db.resetTokens[resetToken]);
-    if (!user) throw new Error('Token không hợp lệ hoặc đã hết hạn');
-    user.password = body.password;
-    delete db.resetTokens[resetToken];
-    saveDemoStore(db);
-    return { success: true, message: 'Đã đổi mật khẩu thành công' };
-  }
-
-  const user = requireDemoUser(db);
-  const userId = user.id;
-
-  if (pathname === '/transactions' && method === 'GET') {
-    const type = params.get('type');
-    const category = params.get('category');
-    const startDate = params.get('startDate');
-    const endDate = params.get('endDate');
-    const limit = Number(params.get('limit') || 20);
-    const data = db.transactions
-      .filter(item => item.userId === userId)
-      .filter(item => !type || item.type === type)
-      .filter(item => !category || item.category === category)
-      .filter(item => inDateRange(item.date, startDate, endDate))
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, limit);
-    return { success: true, total: data.length, page: 1, data };
-  }
-
-  if (pathname === '/transactions' && method === 'POST') {
-    const transaction = { _id: demoId(), ...body, amount: Number(body.amount || 0), userId, createdAt: now, updatedAt: now };
-    db.transactions.push(transaction);
-    saveDemoStore(db);
-    return { success: true, data: transaction };
-  }
-
-  if (pathname === '/transactions/summary') {
-    const { start, end } = monthWindow(params.get('month'), params.get('year'));
-    const data = db.transactions.filter(item => item.userId === userId && inDateRange(item.date, start, end));
-    const income = data.filter(item => item.type === 'income').reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    const expense = data.filter(item => item.type === 'expense').reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    return { success: true, data: { income, expense, balance: income - expense } };
-  }
-
-  if (pathname === '/transactions/by-category') {
-    const { start, end } = monthWindow(params.get('month'), params.get('year'));
-    const type = params.get('type');
-    const grouped = {};
-    db.transactions
-      .filter(item => item.userId === userId && item.type === type && inDateRange(item.date, start, end))
-      .forEach(item => {
-        grouped[item.category] = grouped[item.category] || { _id: item.category, total: 0, count: 0 };
-        grouped[item.category].total += Number(item.amount || 0);
-        grouped[item.category].count += 1;
-      });
-    return { success: true, data: Object.values(grouped).sort((a, b) => b.total - a.total) };
-  }
-
-  if (pathname === '/transactions/quarterly') {
-    const year = Number(params.get('year')) || new Date().getFullYear();
-    const data = Array.from({ length: 4 }, (_, index) => {
-      const quarter = index + 1;
-      const items = db.transactions.filter(item => {
-        const date = new Date(item.date);
-        return item.userId === userId && date.getFullYear() === year && Math.ceil((date.getMonth() + 1) / 3) === quarter;
-      });
-      const revenue = items.filter(item => item.type === 'income').reduce((sum, item) => sum + Number(item.amount || 0), 0);
-      const expense = items.filter(item => item.type === 'expense').reduce((sum, item) => sum + Number(item.amount || 0), 0);
-      return { quarter, label: `Quý ${quarter}`, revenue, expense, profit: revenue - expense };
-    });
-    return { success: true, year, data };
-  }
-
-  if (pathname.startsWith('/transactions/') && method === 'DELETE') {
-    const id = pathname.split('/').pop();
-    db.transactions = db.transactions.filter(item => !(item._id === id && item.userId === userId));
-    saveDemoStore(db);
-    return { success: true, message: 'Đã xóa giao dịch' };
-  }
-
-  if (pathname === '/budgets' && method === 'GET') {
-    const { month, year, start, end } = monthWindow(params.get('month'), params.get('year'));
-    const budgets = db.budgets.filter(item => item.userId === userId && item.month === month && item.year === year);
-    const data = budgets.map(item => {
-      const spent = db.transactions
-        .filter(tx => tx.userId === userId && tx.type === 'expense' && tx.category === item.category && inDateRange(tx.date, start, end))
-        .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-      return { ...item, spent, remaining: item.limitAmount - spent, percentUsed: item.limitAmount ? Math.round((spent / item.limitAmount) * 10000) / 100 : 0 };
-    });
-    return { success: true, data };
-  }
-
-  if (pathname === '/budgets' && method === 'POST') {
-    let budget = db.budgets.find(item => item.userId === userId && item.category === body.category && item.month === Number(body.month) && item.year === Number(body.year));
-    if (budget) {
-      budget.limitAmount = Number(body.limitAmount || 0);
-    } else {
-      budget = { _id: demoId(), userId, category: body.category, limitAmount: Number(body.limitAmount || 0), month: Number(body.month), year: Number(body.year), createdAt: now };
-      db.budgets.push(budget);
-    }
-    saveDemoStore(db);
-    return { success: true, data: budget };
-  }
-
-  if (pathname.startsWith('/budgets/') && method === 'DELETE') {
-    const id = pathname.split('/').pop();
-    db.budgets = db.budgets.filter(item => !(item._id === id && item.userId === userId));
-    saveDemoStore(db);
-    return { success: true, message: 'Đã xóa ngân sách' };
-  }
-
-  if (pathname === '/assets' && method === 'GET') {
-    const data = db.assets.filter(item => item.userId === userId).sort((a, b) => new Date(b.acquiredAt) - new Date(a.acquiredAt));
-    const totalValue = data.reduce((sum, item) => sum + Number(item.value || 0), 0);
-    const byType = data.reduce((acc, item) => ({ ...acc, [item.type]: (acc[item.type] || 0) + Number(item.value || 0) }), {});
-    return { success: true, data, summary: { totalValue, byType, count: data.length } };
-  }
-
-  if (pathname === '/assets' && method === 'POST') {
-    const asset = { _id: demoId(), userId, ...body, value: Number(body.value || 0), acquiredAt: body.acquiredAt || now, createdAt: now };
-    db.assets.push(asset);
-    saveDemoStore(db);
-    return { success: true, data: asset };
-  }
-
-  if (pathname.startsWith('/assets/') && method === 'DELETE') {
-    const id = pathname.split('/').pop();
-    db.assets = db.assets.filter(item => !(item._id === id && item.userId === userId));
-    saveDemoStore(db);
-    return { success: true, message: 'Đã xóa tài sản' };
-  }
-
-  if (pathname === '/portfolios' && method === 'GET') {
-    return { success: true, data: db.portfolios.filter(item => item.userId === userId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) };
-  }
-
-  if (pathname === '/portfolios' && method === 'POST') {
-    const portfolio = { _id: demoId(), userId, name: body.name, description: body.description || '', stocks: [], createdAt: now };
-    db.portfolios.push(portfolio);
-    saveDemoStore(db);
-    return { success: true, data: portfolio };
-  }
-
-  if (pathname.match(/^\/portfolios\/[^/]+\/stocks$/) && method === 'POST') {
-    const portfolioId = pathname.split('/')[2];
-    const portfolio = db.portfolios.find(item => item._id === portfolioId && item.userId === userId);
-    if (!portfolio) throw new Error('Không tìm thấy portfolio');
-    portfolio.stocks.push({ _id: demoId(), ...body, shares: Number(body.shares || 0), buyPrice: Number(body.buyPrice || 0) });
-    saveDemoStore(db);
-    return { success: true, data: portfolio };
-  }
-
-  if (pathname.startsWith('/portfolios/') && method === 'DELETE') {
-    const id = pathname.split('/')[2];
-    db.portfolios = db.portfolios.filter(item => !(item._id === id && item.userId === userId));
-    saveDemoStore(db);
-    return { success: true, message: 'Đã xóa portfolio' };
-  }
-
-  if (pathname === '/stocks/search') {
-    const q = String(params.get('q') || '').trim().toUpperCase();
-    const data = STOCKS.filter(stock => !q || stock.symbol.includes(q) || stock.name.toUpperCase().includes(q));
-    return { success: true, data: data.slice(0, 8) };
-  }
-
-  if (pathname.startsWith('/stocks/')) {
-    const symbol = pathname.split('/').pop().toUpperCase();
-    const stock = STOCKS.find(item => item.symbol === symbol);
-    if (!stock) throw new Error('Không tìm thấy mã cổ phiếu');
-    const history = Array.from({ length: 12 }, (_, index) => ({ month: index + 1, price: Math.round(stock.price * (0.88 + index * 0.012 + Math.sin(index / 1.8) * 0.08)) }));
-    return { success: true, data: { ...stock, history } };
-  }
-
-  if (pathname === '/simulations/run' && method === 'POST') {
-    const simulation = { _id: demoId(), userId, ...body, ...demoSimulation(body), createdAt: now };
-    db.simulations.push(simulation);
-    saveDemoStore(db);
-    return { success: true, data: simulation };
-  }
-
-  if (pathname === '/simulations' && method === 'GET') {
-    return { success: true, data: db.simulations.filter(item => item.userId === userId).map(({ chartData, ...item }) => item).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) };
-  }
-
-  throw new Error('Chức năng demo chưa hỗ trợ route này');
-}
-
-async function localApiForm(path, formData) {
-  const db = demoStore();
-  const user = requireDemoUser(db);
-  if (path === '/auth/update-profile') {
-    user.name = formData.get('name') || user.name;
-    user.email = formData.get('email') || user.email;
-    saveDemoStore(db);
-    return { success: true, user };
-  }
-  throw new Error('Chức năng demo chưa hỗ trợ upload file');
 }
 
 function toast(msg, type = 'success') {
@@ -681,21 +321,9 @@ async function exportYearlyChartCSV() {
   if (!yearlyChartData.length) return toast('Chưa có dữ liệu biểu đồ để xuất', 'error');
 
   try {
-    if (localDemoMode) {
-      downloadYearlyChartCSV(yearlyChartData, yearlyChartYear);
-      toast('Đã xuất biểu đồ gồm doanh thu, chi phí và lợi nhuận');
-      return;
-    }
-
     const res = await fetch(`/api/transactions/quarterly/export?year=${yearlyChartYear}`, {
       headers: token ? { Authorization: 'Bearer ' + token } : {},
     });
-    if (res.status === 503) {
-      localDemoMode = true;
-      downloadYearlyChartCSV(yearlyChartData, yearlyChartYear);
-      toast('Đã xuất biểu đồ gồm doanh thu, chi phí và lợi nhuận');
-      return;
-    }
     if (!res.ok) throw new Error('Không xuất được biểu đồ');
 
     const blob = await res.blob();
@@ -709,20 +337,6 @@ async function exportYearlyChartCSV() {
   } catch (e) {
     toast(e.message, 'error');
   }
-}
-
-function downloadYearlyChartCSV(data, year) {
-  const header = ['Mốc thời gian', 'Doanh thu', 'Chi phí', 'Lợi nhuận'];
-  const csv = [header, ...data.map(item => [item.label, item.revenue, item.expense, item.profit])]
-    .map(row => row.map(cell => `"${String(cell).replaceAll('"', '""')}"`).join(','))
-    .join('\n');
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `bieu-do-tai-chinh-theo-quy-${year}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 // ─── TRANSACTIONS ───
@@ -1205,8 +819,7 @@ async function loadSimulations() {
 }
 
 // ─── INIT ───
-window.addEventListener('DOMContentLoaded', async () => {
-  await detectApiMode();
+window.addEventListener('DOMContentLoaded', () => {
   applyTheme(currentTheme);
 
   // Khởi tạo defaults
