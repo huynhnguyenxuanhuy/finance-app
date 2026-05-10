@@ -27,9 +27,14 @@ app.use('/api', async (req, res, next) => {
   if (req.path === '/health') return next();
 
   if (!process.env.MONGODB_URI || !process.env.JWT_SECRET) {
+    const missing = [
+      !process.env.MONGODB_URI && 'MONGODB_URI',
+      !process.env.JWT_SECRET && 'JWT_SECRET',
+    ].filter(Boolean).join('/');
+
     return res.status(503).json({
       success: false,
-      message: 'API chưa cấu hình MONGODB_URI/JWT_SECRET trên server production',
+      message: `API chưa cấu hình ${missing} trên server production`,
     });
   }
 
