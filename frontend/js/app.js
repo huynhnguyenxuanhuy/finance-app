@@ -19,7 +19,7 @@ async function api(path, opts = {}) {
     ...opts,
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
-  const data = await res.json();
+  const data = await parseApiResponse(res);
   if (!res.ok) throw new Error(data.message || 'Lỗi server');
   return data;
 }
@@ -30,9 +30,25 @@ async function apiForm(path, formData, method = 'PUT') {
     headers: token ? { Authorization: 'Bearer ' + token } : {},
     body: formData,
   });
-  const data = await res.json();
+  const data = await parseApiResponse(res);
   if (!res.ok) throw new Error(data.message || 'Lỗi server');
   return data;
+}
+
+async function parseApiResponse(res) {
+  const text = await res.text();
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch (_) {
+    return {
+      success: false,
+      message: res.ok
+        ? text
+        : 'API server đang lỗi hoặc chưa cấu hình biến môi trường production',
+    };
+  }
 }
 
 function toast(msg, type = 'success') {
