@@ -343,9 +343,9 @@ async function exportYearlyChartCSV() {
 }
 
 // ─── TRANSACTIONS ───
-const INCOME_CATS = ['Lương', 'Thưởng', 'Đầu tư', 'Kinh doanh', 'Khác'];
-const EXPENSE_CATS = ['Ăn uống', 'Đi lại', 'Nhà ở', 'Giải trí', 'Y tế', 'Giáo dục', 'Mua sắm', 'Khác'];
-const CATEGORY_ICONS = { 'Lương':'💼','Thưởng':'🎁','Đầu tư':'📈','Kinh doanh':'🏢','Ăn uống':'🍜','Đi lại':'🚗','Nhà ở':'🏠','Giải trí':'🎮','Y tế':'💊','Giáo dục':'📚','Mua sắm':'🛍️','Khác':'💳' };
+const INCOME_CATS = ['Thu từ bán hàng', 'Thưởng', 'Đầu tư', 'Kinh doanh', 'Khác'];
+const EXPENSE_CATS = ['Ăn uống', 'Đi lại', 'Trả lương nhân viên', 'Giải trí', 'Y tế', 'Giáo dục', 'Mua sắm', 'Khác'];
+const CATEGORY_ICONS = { 'Thu từ bán hàng':'💰','Thưởng':'🎁','Đầu tư':'📈','Kinh doanh':'🏢','Ăn uống':'🍜','Đi lại':'🚗','Trả lương nhân viên':'👥','Giải trí':'🎮','Y tế':'💊','Giáo dục':'📚','Mua sắm':'🛍️','Khác':'💳' };
 
 function setTxType(type, el) {
   $('tx-type-input').value = type;

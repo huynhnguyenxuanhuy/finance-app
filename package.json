@@ -1,7 +1,7 @@
 {
   "name": "finance-app",
   "version": "1.0.0",
-  "description": "Quản lý tài chính cá nhân & mô phỏng đầu tư cổ phiếu",
+  "description": "Quản lý tài chính doanh nghiệp & mô phỏng đầu tư cổ phiếu",
   "main": "backend/server.js",
   "scripts": {
     "dev": "nodemon backend/server.js",

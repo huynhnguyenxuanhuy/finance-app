@@ -19,8 +19,8 @@ const transactionSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    // income: lương, thưởng, đầu tư, khác
-    // expense: ăn uống, đi lại, nhà ở, giải trí, y tế, giáo dục, khác
+    // income: thu từ bán hàng, thưởng, đầu tư, khác
+    // expense: ăn uống, đi lại, trả lương nhân viên, giải trí, y tế, giáo dục, khác
   },
   note: {
     type: String,
