@@ -6,14 +6,21 @@ const simulationSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  portfolioId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Portfolio',
+  },
+  portfolioName: {
+    type: String,
+    default: '',
+  },
   symbol: {
     type: String,
-    required: true,
     uppercase: true,
   },
   strategy: {
     type: String,
-    enum: ['dca', 'lump_sum'],
+    enum: ['dca', 'lump_sum', 'portfolio', 'gold'],
     default: 'dca',
   },
   monthlyAmount: {
@@ -49,6 +56,19 @@ const simulationSchema = new mongoose.Schema({
     date: Date,
     value: Number,
     invested: Number,
+  }],
+  projections: [{
+    label: String,
+    years: Number,
+    totalBefore: Number,
+    totalAfter: Number,
+    profitPercent: Number,
+    holdings: [{
+      symbol: String,
+      before: Number,
+      after: Number,
+      annualReturn: Number,
+    }],
   }],
 }, { timestamps: true });
 

@@ -17,6 +17,11 @@ const portfolioStockSchema = new mongoose.Schema({
     required: true,
     min: 0,
   },
+  investedAmount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
   buyDate: {
     type: Date,
     required: true,

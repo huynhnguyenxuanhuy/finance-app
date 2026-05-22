@@ -11,6 +11,7 @@ const STOCKS = [
   { symbol: 'VIC', name: 'Vingroup', pe: 31.5, eps: 1380, sector: 'Bất động sản', price: 43500 },
   { symbol: 'SSI', name: 'SSI Securities', pe: 19.6, eps: 1720, sector: 'Chứng khoán', price: 33700 },
   { symbol: 'GAS', name: 'PV Gas', pe: 17.5, eps: 4620, sector: 'Năng lượng', price: 80800 },
+  { symbol: 'KBC', name: 'Kinh Bac City', pe: 15.7, eps: 1840, sector: 'Khu công nghiệp', price: 31800 },
 ];
 
 router.use(protect);

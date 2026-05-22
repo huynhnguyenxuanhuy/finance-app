@@ -195,6 +195,26 @@
               Thêm tài sản
             </button>
           </div>
+          <div class="card mb-20" id="asset-cash-tools">
+            <div class="section-header">
+              <div><div class="section-title">Dòng tiền khả dụng</div><div class="section-sub">Nhập số dư thu - chi thành tiền mặt rồi phân bổ sang tiết kiệm, chứng khoán hoặc vàng</div></div>
+              <button class="btn btn-ghost btn-sm" onclick="refreshCashSuggestion()">Làm mới</button>
+            </div>
+            <div class="cash-tools-grid">
+              <div>
+                <label class="form-label">Tháng tính số dư</label>
+                <input type="month" id="asset-cash-month" class="form-control" onchange="refreshCashSuggestion()"/>
+              </div>
+              <div class="cash-balance-box">
+                <span>Số dư thu - chi</span>
+                <strong id="asset-cash-balance">0 ₫</strong>
+              </div>
+              <div class="cash-actions">
+                <button class="btn btn-primary" onclick="createCashFromBalance()">Nhập vào tiền mặt</button>
+                <button class="btn btn-ghost" onclick="openAllocateCash()">Phân bổ tiền mặt</button>
+              </div>
+            </div>
+          </div>
           <div class="stats-grid" id="asset-summary" style="margin-bottom:20px"></div>
           <div class="card">
             <div class="table-wrap">
@@ -215,6 +235,7 @@
               Tạo portfolio
             </button>
           </div>
+          <div class="card mb-20" id="portfolio-capital-summary"></div>
           <div id="portfolio-grid" class="grid-3"><div class="loading"><div class="spinner"></div>Đang tải...</div></div>
         </div>
 
@@ -229,14 +250,18 @@
               <div class="tabs">
                 <button class="tab active" onclick="switchSimTab('dca',this)">DCA hàng tháng</button>
                 <button class="tab" onclick="switchSimTab('lump_sum',this)">Đầu tư một lần</button>
+                <button class="tab" onclick="switchSimTab('portfolio',this)">Theo danh mục</button>
+                <button class="tab" onclick="switchSimTab('gold',this)">Vàng</button>
               </div>
               <input type="hidden" id="sim-strategy" value="dca"/>
+              <div id="sim-stock-fields">
               <div class="form-group">
                 <label class="form-label">Mã cổ phiếu / Quỹ</label>
                 <input type="text" id="sim-symbol" class="form-control" placeholder="VNM, FPT, VIC..." value="VNM" onblur="lookupStock()"/>
                 <button class="btn btn-ghost btn-sm" onclick="lookupStock()" style="margin-top:8px">Tìm mã & xem P/E, EPS</button>
               </div>
               <div id="stock-info" class="mb-16"></div>
+              </div>
               <div id="sim-dca-fields">
                 <div class="form-group">
                   <label class="form-label">Số tiền đầu tư hàng tháng (₫)</label>
@@ -249,11 +274,27 @@
                   <input type="number" id="sim-initial" class="form-control" placeholder="50000000" value="50000000"/>
                 </div>
               </div>
-              <div class="form-row">
+              <div id="sim-portfolio-fields" style="display:none">
+                <div class="form-group">
+                  <label class="form-label">Chọn danh mục đầu tư</label>
+                  <select id="sim-portfolio" class="form-control"></select>
+                </div>
+              </div>
+              <div id="sim-gold-fields" style="display:none">
+                <div class="form-group">
+                  <label class="form-label">Tài sản vàng</label>
+                  <select id="sim-gold-asset" class="form-control"></select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Số tiền mô phỏng nếu chưa chọn tài sản (₫)</label>
+                  <input type="number" id="sim-gold-amount" class="form-control" placeholder="1000000"/>
+                </div>
+              </div>
+              <div class="form-row" id="sim-date-fields">
                 <div class="form-group"><label class="form-label">Từ tháng</label><input type="month" id="sim-start" class="form-control" value="2020-01"/></div>
                 <div class="form-group"><label class="form-label">Đến tháng</label><input type="month" id="sim-end" class="form-control"/></div>
               </div>
-              <div class="form-group">
+              <div class="form-group" id="sim-return-field">
                 <label class="form-label">Lợi nhuận kỳ vọng / năm (%)</label>
                 <input type="number" id="sim-return" class="form-control" value="12" min="1" max="50"/>
               </div>
@@ -269,6 +310,8 @@
                   <div class="sim-item"><div class="sim-label">Lợi nhuận</div><div class="sim-val" style="color:var(--accent)" id="res-profit">—</div></div>
                 </div>
                 <div id="sim-chart" class="sim-chart"></div>
+                <div id="portfolio-projection"></div>
+                <div id="gold-forecast"></div>
               </div>
             </div>
             <div class="card">
@@ -322,12 +365,28 @@
     <div class="form-group"><label class="form-label">Tên tài sản</label><input type="text" id="asset-name" class="form-control" placeholder="VD: Tiền gửi ngân hàng ABC"/></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Loại tài sản</label>
-        <select id="asset-type" class="form-control"><option value="cash">Tiền mặt</option><option value="savings">Tiết kiệm</option><option value="stock">Cổ phiếu</option><option value="real_estate">Bất động sản</option><option value="vehicle">Phương tiện</option><option value="other">Khác</option></select>
+        <select id="asset-type" class="form-control"><option value="cash">Tiền mặt</option><option value="savings">Tiết kiệm</option><option value="stock">Đầu tư chứng khoán</option><option value="gold">Vàng</option><option value="real_estate">Bất động sản</option><option value="vehicle">Phương tiện</option><option value="other">Khác</option></select>
       </div>
       <div class="form-group"><label class="form-label">Giá trị (₫)</label><input type="number" id="asset-value" class="form-control" placeholder="0"/></div>
     </div>
     <div class="form-group"><label class="form-label">Ngày mua/có</label><input type="date" id="asset-date" class="form-control"/></div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-add-asset')">Hủy</button><button class="btn btn-primary" onclick="submitAsset()">Lưu</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-allocate-cash">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Phân bổ tiền mặt</div><button class="modal-close" onclick="closeModal('modal-allocate-cash')">×</button></div>
+    <div class="form-group"><label class="form-label">Nguồn tiền mặt</label><select id="alloc-cash-source" class="form-control"></select></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Phân bổ sang</label>
+        <select id="alloc-type" class="form-control"><option value="savings">Tiết kiệm</option><option value="stock">Đầu tư chứng khoán</option><option value="gold">Mua vàng</option><option value="other">Khác</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Số tiền (₫)</label><input type="number" id="alloc-value" class="form-control" placeholder="1000000"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Tên mục phân bổ</label><input type="text" id="alloc-name" class="form-control" placeholder="VD: Mua vàng SJC / Vốn chứng khoán"/></div>
+    <div class="form-group"><label class="form-label">Ghi chú</label><input type="text" id="alloc-note" class="form-control" placeholder="Mục tiêu phân bổ..."/></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-allocate-cash')">Hủy</button><button class="btn btn-primary" onclick="submitCashAllocation()">Phân bổ</button></div>
   </div>
 </div>
 
@@ -346,16 +405,17 @@
     <input type="hidden" id="stock-portfolio-id"/>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Mã cổ phiếu</label><input type="text" id="stock-symbol" class="form-control" placeholder="FPT"/></div>
-      <div class="form-group"><label class="form-label">Số lượng</label><input type="number" id="stock-shares" class="form-control" placeholder="100"/></div>
+      <div class="form-group"><label class="form-label">Số tiền phân bổ (₫)</label><input type="number" id="stock-invested" class="form-control" placeholder="1000000"/></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Giá mua (₫)</label><input type="number" id="stock-price" class="form-control" placeholder="100000"/></div>
-      <div class="form-group"><label class="form-label">Ngày mua</label><input type="date" id="stock-date" class="form-control"/></div>
+      <div class="form-group"><label class="form-label">Số lượng dự kiến</label><input type="number" id="stock-shares" class="form-control" placeholder="Tự tính nếu để trống"/></div>
     </div>
     <div class="form-row">
+      <div class="form-group"><label class="form-label">Ngày mua</label><input type="date" id="stock-date" class="form-control"/></div>
       <div class="form-group"><label class="form-label">Chiến lược</label><select id="stock-strategy" class="form-control"><option value="lump_sum">Một lần</option><option value="dca">DCA</option><option value="other">Khác</option></select></div>
-      <div class="form-group"><label class="form-label">Ghi chú</label><input type="text" id="stock-note" class="form-control" placeholder="Lý do mua..."/></div>
     </div>
+    <div class="form-group"><label class="form-label">Ghi chú</label><input type="text" id="stock-note" class="form-control" placeholder="Lý do mua..."/></div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-add-stock')">Hủy</button><button class="btn btn-primary" onclick="submitStock()">Lưu cổ phiếu</button></div>
   </div>
 </div>
@@ -382,6 +442,6 @@
 </div>
 
 <div class="toast-container" id="toast-container"></div>
-<script src="/js/app.js?v=backend-sync-20260510"></script>
+<script src="/js/app.js?v=asset-allocation-20260522"></script>
 </body>
 </html>

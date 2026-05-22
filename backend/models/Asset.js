@@ -13,7 +13,7 @@ const assetSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['cash', 'savings', 'stock', 'real_estate', 'vehicle', 'other'],
+    enum: ['cash', 'savings', 'stock', 'gold', 'real_estate', 'vehicle', 'other'],
     required: true,
   },
   value: {
@@ -28,6 +28,10 @@ const assetSchema = new mongoose.Schema({
   note: {
     type: String,
     default: '',
+  },
+  sourceAssetId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Asset',
   },
 }, { timestamps: true });
 

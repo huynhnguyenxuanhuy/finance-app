@@ -163,6 +163,39 @@ td:first-child{color:var(--text)}tr:last-child td{border-bottom:none}tr:hover td
 .sim-chart-bar{width:50%;border-radius:3px 3px 0 0}
 .sim-chart-bar.value{background:var(--green)}
 .sim-chart-bar.invested{background:var(--accent)}
+.sim-chart-bar.gold{width:100%;background:linear-gradient(to top,var(--amber),rgba(245,158,11,.35))}
+
+.cash-tools-grid{display:grid;grid-template-columns:180px 1fr auto;gap:14px;align-items:end}
+.cash-balance-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-height:62px}
+.cash-balance-box span{display:block;font-size:.75rem;color:var(--muted2);margin-bottom:5px}
+.cash-balance-box strong{font-family:'DM Mono',monospace;font-size:1.05rem;font-weight:600;color:var(--green)}
+.cash-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+
+.projection-table{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.portfolio-stock-growth{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:16px}
+.portfolio-stock-growth>div{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px}
+.portfolio-stock-growth strong{font-family:'DM Mono',monospace;font-size:.8rem}
+.portfolio-stock-growth small{display:block;color:var(--muted2);font-size:.68rem;margin-top:6px}
+.portfolio-stock-bars{height:86px;display:flex;align-items:flex-end;gap:6px;margin-top:10px}
+.portfolio-stock-bars span{flex:1;background:linear-gradient(to top,var(--accent),rgba(79,156,249,.35));border-radius:4px 4px 0 0;min-height:8px}
+.projection-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px}
+.projection-title{font-size:.78rem;color:var(--muted2);margin-bottom:6px}
+.projection-total{font-family:'DM Mono',monospace;font-size:.9rem;color:var(--muted2)}
+.projection-total span{color:var(--green)}
+.projection-profit{font-size:.75rem;color:var(--accent);margin-top:6px}
+.projection-holdings{display:grid;gap:6px;margin-top:10px}
+.projection-holdings div{display:flex;justify-content:space-between;gap:10px;font-size:.75rem;color:var(--muted2)}
+.projection-holdings strong{font-family:'DM Mono',monospace;color:var(--text)}
+
+.gold-signal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.gold-signal-grid div{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px}
+.gold-signal-grid span,.gold-signal-grid small{display:block;color:var(--muted2);font-size:.72rem}
+.gold-signal-grid strong{display:block;font-family:'DM Mono',monospace;color:var(--amber);font-size:.95rem;margin:5px 0}
+.gold-hourly-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.gold-hourly-list div{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 10px;font-size:.72rem}
+.gold-hourly-list span{color:var(--muted2)}
+.gold-hourly-list strong{font-family:'DM Mono',monospace;color:var(--text);font-weight:500}
+.gold-hourly-list em{font-style:normal;font-family:'DM Mono',monospace;color:var(--green)}
 
 .stock-info-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .stock-metrics{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
@@ -207,6 +240,7 @@ td:first-child{color:var(--text)}tr:last-child td{border-bottom:none}tr:hover td
   .sidebar{transform:translateX(-100%)}.sidebar.open{transform:none}
   .main-content{margin-left:0}
   .grid-2,.form-row{grid-template-columns:1fr}
+  .cash-tools-grid,.projection-table,.gold-signal-grid,.gold-hourly-list{grid-template-columns:1fr}
   .stats-grid{grid-template-columns:1fr 1fr}
   .sim-grid{grid-template-columns:1fr}
   .yearly-summary{grid-template-columns:1fr}

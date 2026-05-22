@@ -6,6 +6,9 @@ let currentPage = 'dashboard';
 let currentTheme = localStorage.getItem('theme') || 'dark';
 let yearlyChartData = [];
 let yearlyChartYear = new Date().getFullYear();
+let currentAssets = [];
+let currentPortfolios = [];
+let currentCashBalance = 0;
 
 // ─── HELPERS ───
 const $ = id => document.getElementById(id);
@@ -171,8 +174,8 @@ function navigate(page) {
   else if (page === 'transactions') { setDefaultMonth(); loadTransactions(); }
   else if (page === 'budgets') loadBudgets();
   else if (page === 'assets') loadAssets();
-  else if (page === 'portfolio') loadPortfolios();
-  else if (page === 'simulation') { setSimDefaults(); loadSimulations(); }
+  else if (page === 'portfolio') { loadAssets(); loadPortfolios(); }
+  else if (page === 'simulation') { setSimDefaults(); loadPortfolios(); loadAssets(); loadSimulations(); }
 }
 
 // ─── DASHBOARD ───
@@ -511,13 +514,17 @@ async function deleteBudget(id) {
 }
 
 // ─── ASSETS ───
-const ASSET_TYPES = { cash: 'Tiền mặt', savings: 'Tiết kiệm', stock: 'Cổ phiếu', real_estate: 'Bất động sản', vehicle: 'Phương tiện', other: 'Khác' };
-const ASSET_ICONS = { cash: '💵', savings: '🏦', stock: '📊', real_estate: '🏠', vehicle: '🚗', other: '📦' };
+const ASSET_TYPES = { cash: 'Tiền mặt', savings: 'Tiết kiệm', stock: 'Đầu tư chứng khoán', gold: 'Vàng', real_estate: 'Bất động sản', vehicle: 'Phương tiện', other: 'Khác' };
+const ASSET_ICONS = { cash: '💵', savings: '🏦', stock: '📊', gold: '🥇', real_estate: '🏠', vehicle: '🚗', other: '📦' };
 
 async function loadAssets() {
   try {
     const data = await api('/assets');
     const assets = data.data;
+    currentAssets = assets;
+    renderCashSourceOptions();
+    renderGoldAssetSelect();
+    renderPortfolioCapitalSummary();
 
     // Summary
     const totalByType = data.summary?.byType || {};
@@ -543,7 +550,106 @@ async function loadAssets() {
         <td><button class="btn btn-danger btn-sm" onclick="deleteAsset('${a._id}')">Xóa</button></td>
       </tr>
     `).join('');
+    refreshCashSuggestion();
   } catch (e) { toast('Lỗi tải tài sản', 'error'); }
+}
+
+async function refreshCashSuggestion() {
+  if (!$('asset-cash-month')) return;
+  const monthValue = $('asset-cash-month').value;
+  if (!monthValue) return;
+  const [year, month] = monthValue.split('-');
+  try {
+    const summary = await api(`/transactions/summary?month=${Number(month)}&year=${Number(year)}`);
+    currentCashBalance = Math.max(0, (summary.data?.income || 0) - (summary.data?.expense || 0));
+    $('asset-cash-balance').textContent = fmt(currentCashBalance);
+  } catch (e) {
+    currentCashBalance = 0;
+    $('asset-cash-balance').textContent = 'Không tải được';
+  }
+}
+
+async function createCashFromBalance() {
+  if (!currentCashBalance) return toast('Tháng này chưa có số dư dương để nhập tiền mặt', 'error');
+  const monthValue = $('asset-cash-month').value;
+  try {
+    await api('/assets', {
+      method: 'POST',
+      body: {
+        name: `Tiền mặt từ số dư ${monthValue}`,
+        type: 'cash',
+        value: currentCashBalance,
+        acquiredAt: new Date().toISOString(),
+        note: 'Tự nhập từ số dư thu - chi',
+      },
+    });
+    toast('Đã nhập số dư vào tài sản tiền mặt');
+    loadAssets();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function renderCashSourceOptions() {
+  if (!$('alloc-cash-source')) return;
+  const cashAssets = currentAssets.filter(asset => asset.type === 'cash' && asset.value > 0);
+  $('alloc-cash-source').innerHTML = cashAssets.length
+    ? cashAssets.map(asset => `<option value="${asset._id}">${asset.name} · còn ${fmt(asset.value)}</option>`).join('')
+    : '<option value="">Chưa có tiền mặt khả dụng</option>';
+}
+
+function renderGoldAssetSelect() {
+  if (!$('sim-gold-asset')) return;
+  const goldAssets = currentAssets.filter(asset => asset.type === 'gold' && asset.value > 0);
+  $('sim-gold-asset').innerHTML = goldAssets.length
+    ? '<option value="">Nhập số tiền thủ công</option>' + goldAssets.map(asset => `<option value="${asset._id}">${asset.name} · ${fmt(asset.value)}</option>`).join('')
+    : '<option value="">Chưa có tài sản vàng</option>';
+}
+
+function renderPortfolioCapitalSummary() {
+  if (!$('portfolio-capital-summary')) return;
+  const stockCapital = currentAssets
+    .filter(asset => asset.type === 'stock')
+    .reduce((sum, asset) => sum + asset.value, 0);
+  const allocatedInPortfolios = currentPortfolios
+    .flatMap(port => port.stocks || [])
+    .reduce((sum, stock) => sum + (Number(stock.investedAmount) || (Number(stock.shares) || 0) * (Number(stock.buyPrice) || 0)), 0);
+  const remaining = Math.max(0, stockCapital - allocatedInPortfolios);
+  $('portfolio-capital-summary').innerHTML = `
+    <div class="section-header" style="margin-bottom:0">
+      <div>
+        <div class="section-title">Vốn đầu tư chứng khoán</div>
+        <div class="section-sub">Tổng vốn đã phân bổ từ Tài sản: ${fmt(stockCapital)} · Còn có thể chia vào mã cổ phiếu: ${fmt(remaining)}</div>
+      </div>
+      <div class="mono" style="color:var(--green);font-size:1rem">${fmt(allocatedInPortfolios)}</div>
+    </div>
+  `;
+}
+
+function openAllocateCash() {
+  renderCashSourceOptions();
+  if (!$('alloc-cash-source').value) return toast('Bạn cần có tài sản tiền mặt trước khi phân bổ', 'error');
+  openModal('modal-allocate-cash');
+}
+
+async function submitCashAllocation() {
+  const value = Number($('alloc-value').value);
+  const type = $('alloc-type').value;
+  const defaultNames = { savings: 'Tiết kiệm', stock: 'Vốn đầu tư chứng khoán', gold: 'Mua vàng', other: 'Phân bổ khác' };
+  try {
+    await api('/assets/allocate', {
+      method: 'POST',
+      body: {
+        fromAssetId: $('alloc-cash-source').value,
+        name: $('alloc-name').value || defaultNames[type],
+        type,
+        value,
+        note: $('alloc-note').value,
+      },
+    });
+    closeModal('modal-allocate-cash');
+    toast('Đã phân bổ tiền mặt');
+    ['alloc-name', 'alloc-value', 'alloc-note'].forEach(id => { $(id).value = ''; });
+    loadAssets();
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 async function submitAsset() {
@@ -577,6 +683,9 @@ async function loadPortfolios() {
   try {
     const data = await api('/portfolios');
     const ports = data.data;
+    currentPortfolios = ports;
+    renderPortfolioSelect();
+    renderPortfolioCapitalSummary();
     if (!ports.length) {
       $('portfolio-grid').innerHTML = '<div style="grid-column:1/-1"><div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Chưa có portfolio nào. Tạo portfolio để bắt đầu!</div></div></div>';
       return;
@@ -588,12 +697,19 @@ async function loadPortfolios() {
           <button class="btn btn-danger btn-sm" onclick="deletePortfolio('${p._id}',event)">Xóa</button>
         </div>
         <div class="portfolio-desc">${p.description || 'Không có mô tả'}</div>
-        ${p.stocks.length ? `<div class="stock-chips">${p.stocks.slice(0,6).map(s => `<span class="stock-chip">${s.symbol} · ${fmtNum((s.shares || 0) * (s.buyPrice || 0))}</span>`).join('')}${p.stocks.length > 6 ? `<span class="stock-chip">+${p.stocks.length-6}</span>` : ''}</div>` : '<div style="font-size:.78rem;color:var(--muted)">Chưa có cổ phiếu</div>'}
+        ${p.stocks.length ? `<div class="stock-chips">${p.stocks.slice(0,6).map(s => `<span class="stock-chip">${s.symbol} · ${fmtNum(s.investedAmount || ((s.shares || 0) * (s.buyPrice || 0)))}</span>`).join('')}${p.stocks.length > 6 ? `<span class="stock-chip">+${p.stocks.length-6}</span>` : ''}</div>` : '<div style="font-size:.78rem;color:var(--muted)">Chưa có cổ phiếu</div>'}
         <button class="btn btn-ghost btn-sm" style="margin-top:14px" onclick="openAddStock('${p._id}', event)">Thêm cổ phiếu</button>
         <div style="margin-top:12px;font-size:.75rem;color:var(--muted)">${new Date(p.createdAt).toLocaleDateString('vi-VN')}</div>
       </div>
     `).join('');
   } catch (e) { toast('Lỗi tải portfolio', 'error'); }
+}
+
+function renderPortfolioSelect() {
+  if (!$('sim-portfolio')) return;
+  $('sim-portfolio').innerHTML = currentPortfolios.length
+    ? currentPortfolios.map(port => `<option value="${port._id}">${port.name} · ${port.stocks.length} mã</option>`).join('')
+    : '<option value="">Chưa có danh mục</option>';
 }
 
 async function submitPortfolio() {
@@ -631,6 +747,7 @@ async function submitStock() {
         symbol: $('stock-symbol').value.toUpperCase(),
         shares: Number($('stock-shares').value),
         buyPrice: Number($('stock-price').value),
+        investedAmount: Number($('stock-invested').value),
         buyDate: $('stock-date').value || new Date().toISOString(),
         strategy: $('stock-strategy').value,
         note: $('stock-note').value,
@@ -638,7 +755,7 @@ async function submitStock() {
     });
     closeModal('modal-add-stock');
     toast('Đã thêm cổ phiếu!');
-    ['stock-symbol', 'stock-shares', 'stock-price', 'stock-note'].forEach(id => { $(id).value = ''; });
+    ['stock-symbol', 'stock-shares', 'stock-price', 'stock-invested', 'stock-note'].forEach(id => { $(id).value = ''; });
     loadPortfolios();
   } catch (e) { toast(e.message, 'error'); }
 }
@@ -667,6 +784,8 @@ async function lookupStock() {
 }
 
 // ─── SIMULATION ───
+const SIM_LABELS = { dca: 'DCA', lump_sum: 'Một lần', portfolio: 'Danh mục', gold: 'Vàng' };
+
 function setSimDefaults() {
   const now = new Date();
   if (!$('sim-end').value) {
@@ -678,15 +797,26 @@ function switchSimTab(strategy, el) {
   $('sim-strategy').value = strategy;
   document.querySelectorAll('#page-simulation .tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
+  $('sim-stock-fields').style.display = ['dca', 'lump_sum'].includes(strategy) ? 'block' : 'none';
   $('sim-dca-fields').style.display = strategy === 'dca' ? 'block' : 'none';
   $('sim-lump-fields').style.display = strategy === 'lump_sum' ? 'block' : 'none';
+  $('sim-portfolio-fields').style.display = strategy === 'portfolio' ? 'block' : 'none';
+  $('sim-gold-fields').style.display = strategy === 'gold' ? 'block' : 'none';
+  $('sim-date-fields').style.display = ['dca', 'lump_sum'].includes(strategy) ? 'grid' : 'none';
+  $('sim-return-field').style.display = ['dca', 'lump_sum'].includes(strategy) ? 'block' : 'none';
+  if (strategy === 'portfolio') loadPortfolios();
+  if (strategy === 'gold') loadAssets();
 }
 
 async function runSimulation() {
   try {
+    const strategy = $('sim-strategy').value;
+    if (strategy === 'portfolio') return runPortfolioSimulation();
+    if (strategy === 'gold') return runGoldSimulation();
+
     const body = {
       symbol: $('sim-symbol').value.toUpperCase(),
-      strategy: $('sim-strategy').value,
+      strategy,
       monthlyAmount: Number($('sim-monthly').value) || 0,
       initialAmount: Number($('sim-initial').value) || 0,
       startDate: $('sim-start').value + '-01',
@@ -717,6 +847,8 @@ async function runSimulation() {
     $('res-value').textContent = fmt(currentValue);
     $('res-profit').textContent = '+' + profitPercent + '%';
     $('sim-result').style.display = 'block';
+    $('portfolio-projection').innerHTML = '';
+    $('gold-forecast').innerHTML = '';
     drawSimulationChart(body, monthlyReturn, start, end);
 
     // Lưu lên server
@@ -724,6 +856,127 @@ async function runSimulation() {
     loadSimulations();
     toast('Mô phỏng hoàn tất!');
   } catch (e) { toast(e.message || 'Lỗi mô phỏng', 'error'); }
+}
+
+async function runPortfolioSimulation() {
+  const portfolioId = $('sim-portfolio').value;
+  if (!portfolioId) return toast('Vui lòng tạo hoặc chọn danh mục đầu tư', 'error');
+  try {
+    const result = await api('/simulations/run', { method: 'POST', body: { strategy: 'portfolio', portfolioId } });
+    const sim = result.data;
+    $('res-invested').textContent = fmt(sim.totalInvested);
+    $('res-value').textContent = fmt(sim.resultValue);
+    $('res-profit').textContent = '+' + sim.profitPercent + '%';
+    $('sim-result').style.display = 'block';
+    $('gold-forecast').innerHTML = '';
+    drawServerSimulationChart(sim.chartData || []);
+    renderPortfolioProjection(sim);
+    loadSimulations();
+    toast('Đã mô phỏng danh mục đầu tư');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function runGoldSimulation() {
+  try {
+    const result = await api('/simulations/gold', {
+      method: 'POST',
+      body: {
+        assetId: $('sim-gold-asset').value,
+        amount: Number($('sim-gold-amount').value),
+      },
+    });
+    const { forecast } = result.data;
+    $('res-invested').textContent = fmt(forecast.totalInvested);
+    $('res-value').textContent = fmt(forecast.resultValue);
+    $('res-profit').textContent = (forecast.profitPercent >= 0 ? '+' : '') + forecast.profitPercent + '%';
+    $('sim-result').style.display = 'block';
+    $('portfolio-projection').innerHTML = '';
+    drawGoldForecastChart(forecast.daily);
+    renderGoldForecast(forecast);
+    loadSimulations();
+    toast('Đã mô phỏng đầu tư vàng');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function drawServerSimulationChart(points) {
+  if (!points.length) {
+    $('sim-chart').innerHTML = '';
+    return;
+  }
+  const max = Math.max(...points.map(p => p.value), ...points.map(p => p.invested), 1);
+  $('sim-chart').innerHTML = points.map(p => `
+    <div class="sim-chart-col">
+      <div class="sim-chart-bar value" style="height:${Math.max(4, p.value / max * 100)}%" title="Giá trị: ${fmt(p.value)}"></div>
+      <div class="sim-chart-bar invested" style="height:${Math.max(4, p.invested / max * 100)}%" title="Vốn: ${fmt(p.invested)}"></div>
+    </div>
+  `).join('');
+}
+
+function renderPortfolioProjection(sim) {
+  const projections = sim.projections || [];
+  const symbols = [...new Set(projections.flatMap(projection => projection.holdings.map(item => item.symbol)))];
+  const maxHoldingValue = Math.max(...projections.flatMap(projection => projection.holdings.map(item => item.after)), 1);
+  $('portfolio-projection').innerHTML = `
+    <div class="portfolio-stock-growth">
+      ${symbols.map(symbol => `
+        <div>
+          <strong>${symbol}</strong>
+          <div class="portfolio-stock-bars">
+            ${projections.map(projection => {
+              const holding = projection.holdings.find(item => item.symbol === symbol);
+              const value = holding?.after || 0;
+              return `<span style="height:${Math.max(8, value / maxHoldingValue * 100)}%" title="${symbol} ${projection.label}: ${fmt(value)}"></span>`;
+            }).join('')}
+          </div>
+          <small>1 năm / 5 năm / 10 năm</small>
+        </div>
+      `).join('')}
+    </div>
+    <div class="projection-table">
+      ${projections.map(projection => `
+        <div class="projection-card">
+          <div class="projection-title">${projection.label}</div>
+          <div class="projection-total">${fmt(projection.totalBefore)} → <span>${fmt(projection.totalAfter)}</span></div>
+          <div class="projection-profit">Lãi dự kiến +${projection.profitPercent}%</div>
+          <div class="projection-holdings">
+            ${projection.holdings.map(item => `
+              <div><strong>${item.symbol}</strong><span>${fmt(item.before)} → ${fmt(item.after)}</span></div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function drawGoldForecastChart(points) {
+  const max = Math.max(...points.map(p => p.value), 1);
+  const min = Math.min(...points.map(p => p.value), max);
+  $('sim-chart').innerHTML = points.map(p => {
+    const height = max === min ? 50 : 12 + ((p.value - min) / (max - min)) * 88;
+    return `
+      <div class="sim-chart-col">
+        <div class="sim-chart-bar gold" style="height:${height}%" title="Ngày ${p.day}: ${fmt(p.value)}"></div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderGoldForecast(forecast) {
+  const buyAt = new Date(forecast.buyPoint.at).toLocaleString('vi-VN');
+  const sellAt = new Date(forecast.sellPoint.at).toLocaleString('vi-VN');
+  $('gold-forecast').innerHTML = `
+    <div class="gold-signal-grid">
+      <div><span>Điểm mua gợi ý</span><strong>${fmt(forecast.buyPoint.price)}/lượng</strong><small>${buyAt}</small></div>
+      <div><span>Điểm bán gợi ý</span><strong>${fmt(forecast.sellPoint.price)}/lượng</strong><small>${sellAt}</small></div>
+      <div><span>Khối lượng ước tính</span><strong>${forecast.quantity.toFixed(4)} lượng</strong><small>Giá gốc demo ${fmt(forecast.basePrice)}</small></div>
+    </div>
+    <div class="gold-hourly-list">
+      ${forecast.hourly.filter((_, index) => index % 24 === 0 || index === forecast.hourly.length - 1).slice(0, 12).map(point => `
+        <div><span>${new Date(point.at).toLocaleString('vi-VN')}</span><strong>${fmt(point.price)}/lượng</strong><em>${fmt(point.value)}</em></div>
+      `).join('')}
+    </div>
+  `;
 }
 
 function drawSimulationChart(body, monthlyReturn, start, end) {
@@ -803,10 +1056,10 @@ async function loadSimulations() {
       <div style="padding:12px 0;border-bottom:1px solid var(--border)">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <div>
-            <span style="font-weight:600;font-family:'DM Mono',monospace">${s.symbol}</span>
-            <span class="badge badge-blue" style="margin-left:8px">${s.strategy === 'dca' ? 'DCA' : 'Một lần'}</span>
+            <span style="font-weight:600;font-family:'DM Mono',monospace">${s.portfolioName || s.symbol}</span>
+            <span class="badge badge-blue" style="margin-left:8px">${SIM_LABELS[s.strategy] || s.strategy}</span>
           </div>
-          <span style="font-size:.8rem;color:var(--green);font-weight:600">+${s.profitPercent}%</span>
+          <span style="font-size:.8rem;color:${s.profitPercent >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:600">${s.profitPercent >= 0 ? '+' : ''}${s.profitPercent}%</span>
         </div>
         <div style="display:flex;gap:16px;font-size:.75rem;color:var(--muted)">
           <span>Đầu tư: <span style="color:var(--muted2)">${fmt(s.totalInvested)}</span></span>
@@ -829,6 +1082,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if ($('asset-date')) $('asset-date').value = todayStr;
   if ($('stock-date')) $('stock-date').value = todayStr;
   if ($('budget-month')) $('budget-month').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  if ($('asset-cash-month')) $('asset-cash-month').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
   // Init tx category dropdown
   setTxType('income', document.querySelector('#modal-add-tx .tab'));

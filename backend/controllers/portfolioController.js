@@ -26,7 +26,16 @@ const addStock = async (req, res) => {
     const portfolio = await Portfolio.findOne({ _id: req.params.id, userId: req.user._id });
     if (!portfolio) return res.status(404).json({ success: false, message: 'Không tìm thấy portfolio' });
 
-    portfolio.stocks.push(req.body);
+    const buyPrice = Number(req.body.buyPrice) || 0;
+    const investedAmount = Number(req.body.investedAmount) || 0;
+    const shares = Number(req.body.shares) || (buyPrice > 0 && investedAmount > 0 ? investedAmount / buyPrice : 0);
+
+    portfolio.stocks.push({
+      ...req.body,
+      shares,
+      buyPrice,
+      investedAmount: investedAmount || shares * buyPrice,
+    });
     await portfolio.save();
     res.json({ success: true, data: portfolio });
   } catch (error) {
